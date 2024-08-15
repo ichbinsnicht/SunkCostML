@@ -36,6 +36,7 @@ prolificFrame = do.call("rbind",prolificFrames)
 rm(dataFrames, preSurveyFrames, prolificFrames)
 
 dataFrame = dataFrame[dataFrame$practice==0,]
+dataFrame = dataFrame[!duplicated(dataFrame$id),]
 
 rownames(dataFrame) = dataFrame$id
 rownames(preSurveyFrame) = preSurveyFrame$id
