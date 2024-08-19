@@ -123,7 +123,7 @@ def save_output():
     models[0].load_state_dict(state_dict)
     prediction = models[0](inputs)
     results = {
-        "choice2": targets.cpu().detach().tolist(),
+        "choice2":  df["choice2"].tolist(),
         "prediction": prediction.cpu().detach().tolist(),
         "choice1": df["choice1"].tolist(),
         "score1": df["score1"].tolist()
@@ -133,15 +133,18 @@ def save_output():
         "trainingLoss": training_losses,
         "validationLoss": validation_losses
     }
+    pd.DataFrame(data=loss).to_csv("./loss.csv",index=False)
     steps = [i*0.01 for i in range(0,51)]
     grid = {
-        score1: [
-            models[0](torch.tensor([[score1,choice1]])).cpu().detach().item() 
-            for choice1 in steps
+        choice1: [
+            models[0](torch.tensor([[score1,choice1]]).to(device)).cpu().detach().item() 
+            for score1 in steps
         ] 
-        for score1 in steps
+        for choice1 in steps
     }
-    pd.DataFrame(data=loss).to_csv("./loss.csv",index=False)
+    grid_data_frame = pd.DataFrame(grid)
+    grid_data_frame.index = steps
+    grid_data_frame.to_csv('grid.csv')
     print("CSV Written")
 
 
@@ -161,7 +164,6 @@ for i in range(nsteps):
 
 
 save_output()
+
 # 5k runs for noisy 100k bootstrapped data
 # 3k runs for 23 observations
-
-
