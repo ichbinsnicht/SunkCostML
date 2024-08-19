@@ -16,4 +16,4 @@ case = forced & df$choice1 > 0.4
 summary(lm(df$choice2[case] ~ df$score1[case] + df$choice1[case]))
 summary(lm(df$choice2[case] ~ df$score1[case] + df$prediction[case]))
 print(sum(case))
-plot(df$choice2[case],df$score1[case])
+plot(df$score1[case],df$choice2[case])
