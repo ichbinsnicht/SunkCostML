@@ -1,7 +1,17 @@
 # Regressions
-# Date: 2024-08-02
 
 df = read.csv("machineLearning.csv", row.names = NULL)
+forced = df$score1 != df$choice1
 
-summary(lm(choice2 ~ score1 + choice1,data=df))
-summary(lm(choice2 ~ score1 + prediction,data=df))
+summary(lm(df$choice2 ~ df$score1 + df$choice1))
+summary(lm(df$choice2 ~ df$score1 + df$prediction))
+
+case = forced & df$choice1 < 0.1
+summary(lm(df$choice2[case] ~ df$score1[case] + df$choice1[case]))
+summary(lm(df$choice2[case] ~ df$score1[case] + df$prediction[case]))
+print(sum(case))
+
+case = forced & df$choice1 > 0.4
+summary(lm(df$choice2[case] ~ df$score1[case] + df$choice1[case]))
+summary(lm(df$choice2[case] ~ df$score1[case] + df$prediction[case]))
+print(sum(case))
