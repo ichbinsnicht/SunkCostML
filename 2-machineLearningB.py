@@ -38,7 +38,7 @@ class Network(torch.nn.Module):
         super(Network,self).__init__()
         self.linear1 = torch.nn.Linear(inputs.size()[1],n1)
         self.activation = torch.nn.ReLU()
-        self.dropout = torch.nn.Dropout(0.5)
+        self.sigma = torch.nn.Sigmoid()
         self.linear2 = torch.nn.Linear(n1,n2)
         self.linear3 = torch.nn.Linear(n2,n3)
         self.linear4 = torch.nn.Linear(n3,1)
@@ -50,10 +50,11 @@ class Network(torch.nn.Module):
         x = self.linear3(x)
         x = self.activation(x)
         x = self.linear4(x)
+        x = 0.5*self.sigma(x)
         return torch.squeeze(x)
 
 models = [Network().to(device) for i in range(nfolds+1)]
-optimizers = [torch.optim.Adam(models[i].parameters(), lr=0.001) 
+optimizers = [torch.optim.Adam(models[i].parameters(), lr=0.0001) 
               for i in range(nfolds+1)]
 loss_function = torch.nn.MSELoss()
 training_losses = []
@@ -66,8 +67,7 @@ def get_training_data(i):
     else:
         start_index = folds[i-1]
         end_index = folds[i]
-        # training_indices = torch.cat((indices[:start_index],indices[end_index:]),0)
-        training_indices = torch.cat((indices[:0],indices[15:]),0)
+        training_indices = torch.cat((indices[:start_index],indices[end_index:]),0)
         training_data = (inputs[training_indices, :],targets[training_indices])
         return training_data
 
@@ -77,8 +77,7 @@ def get_validation_data(i):
     else:
         start_index = folds[i-1]
         end_index = folds[i]
-        # validation_indices = indices[start_index:end_index]
-        validation_indices = indices[0:15]
+        validation_indices = indices[start_index:end_index]
         validation_data = (inputs[validation_indices, :],targets[validation_indices])
         return validation_data
 
@@ -93,14 +92,14 @@ def get_model_loss(data,model):
 def get_training_loss():
     training_losses = [0 for i in range(nfolds)]
     for k in range(nfolds):
-        training_data = get_training_data(k)
+        training_data = get_training_data(k+1)
         training_losses[k] = get_model_loss(training_data,models[k+1])
     return sum(training_losses)/len(training_losses)
     
 def get_validation_loss():
     validation_losses = [0 for i in range(nfolds)]
     for k in range(nfolds):
-        validation_data = get_validation_data(k)
+        validation_data = get_validation_data(k+1)
         validation_losses[k] = get_model_loss(validation_data,models[k+1])
     return sum(validation_losses)/len(validation_losses)
 
@@ -160,10 +159,6 @@ for i in range(nsteps):
     if(validation_loss < min_validation_loss):
         min_validation_loss = validation_loss
         state_dict = models[0].state_dict()
-    print("Step",i,", V:",round(validation_loss,3),", T:",round(training_loss,3))    
-
+    print("Step",i,", V:",round(validation_loss,5),", T:",round(training_loss,5))    
 
 save_output()
-
-# 5k runs for noisy 100k bootstrapped data
-# 3k runs for 23 observations
