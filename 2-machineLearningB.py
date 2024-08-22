@@ -33,6 +33,13 @@ n2 = 500  # size of output of layer2
 n3 = 500  # size of output of layer3
         # size of output layer = 1 (output of neural network)
 
+# In ML
+# y = mx (linear function)
+# y = mx + 1*b (affine function)
+# intercept is bias (from linear to affine)
+# https://www.pico.net/kb/the-role-of-bias-in-neural-networks/
+# 3*500 +  501*500 + 501*500 + 501*1 = 503,001 parameters
+
 class Network(torch.nn.Module):
     def __init__(self):
         super(Network,self).__init__()
