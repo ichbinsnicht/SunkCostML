@@ -5,8 +5,8 @@ study2 = df$study == studies[2]
 
 #df = df[study2,]
 
-lowerBound = 1/5*0.5
-upperBound = 4/5*0.5
+lowerBound = 0.1
+upperBound = 0.4
 interiorChoice1 = lowerBound <= df$choice1 & df$choice1 <= upperBound
 lowChoice1 = df$choice1 < lowerBound
 highChoice1 = df$choice1 > upperBound
