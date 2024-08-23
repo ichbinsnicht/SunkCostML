@@ -14,6 +14,7 @@ torch.set_printoptions(sci_mode=False, edgeitems=5)
 df = pd.read_csv("clean/cleanData.csv")
 
 inputs = torch.tensor((df[["score1","choice1"]]).to_numpy(),dtype=torch.float).to(device)
+demo = torch.tensor(df.drop(["score1","choice1","choice2"],axis=1).to_numpy(),dtype=torch.float).to(device)
 targets = torch.tensor(df["choice2"],dtype=torch.float).to(device)
 
 indices = torch.randperm(len(df))   # randomly reorder indices
@@ -24,7 +25,7 @@ for k in range(nfolds+1):
     folds.append(k*foldsize)
 folds[-1] = inputs.size()[0]
 
-full_data = (inputs,targets)
+full_data = (inputs,demo,targets)
 
         # Fully connected (dense) neural network
         # size of layer0 = input features ("number of neurons" in input layer)
@@ -40,16 +41,16 @@ n3 = 500  # size of output of layer3
 # https://www.pico.net/kb/the-role-of-bias-in-neural-networks/
 # 3*500 +  501*500 + 501*500 + 501*1 = 503,001 parameters
 
-class Network(torch.nn.Module):
+class Simple_Network(torch.nn.Module):
     def __init__(self):
-        super(Network,self).__init__()
+        super(Simple_Network,self).__init__()
         self.linear1 = torch.nn.Linear(inputs.size()[1],n1)
         self.activation = torch.nn.ReLU()
         self.sigma = torch.nn.Sigmoid()
         self.linear2 = torch.nn.Linear(n1,n2)
         self.linear3 = torch.nn.Linear(n2,n3)
         self.linear4 = torch.nn.Linear(n3,1)
-    def forward(self,x): # neural network function (take input to create predictions)
+    def forward(self,x,z): # neural network function (take input to create predictions)
         x = self.linear1(x)        
         x = self.activation(x)
         x = self.linear2(x)
@@ -60,7 +61,62 @@ class Network(torch.nn.Module):
         x = 0.5*self.sigma(x)
         return torch.squeeze(x)
 
-models = [Network().to(device) for i in range(nfolds+1)]
+class DemoNetwork(torch.nn.Module):
+    def __init__(self):
+        super(DemoNetwork,self).__init__()
+        self.linear1 = torch.nn.Linear(inputs.size()[1]+demo.size()[1],n1)
+        self.activation = torch.nn.ReLU()
+        self.sigma = torch.nn.Sigmoid()
+        self.linear2 = torch.nn.Linear(n1,n2)
+        self.linear3 = torch.nn.Linear(n2,n3)
+        self.linear4 = torch.nn.Linear(n3,1)
+    def forward(self,x,z):
+        x = torch.cat((x,z),1)
+        x = self.linear1(x)        
+        x = self.activation(x)
+        x = self.linear2(x)
+        x = self.activation(x)
+        x = self.linear3(x)
+        x = self.activation(x)
+        x = self.linear4(x)
+        x = 0.5*self.sigma(x)
+        return torch.squeeze(x)
+
+class SeparableDemoNetwork(torch.nn.Module):
+    def __init__(self):
+        super(SeparableDemoNetwork,self).__init__()
+        self.linear1x = torch.nn.Linear(inputs.size()[1],n1)
+        self.linear2x = torch.nn.Linear(n1,n2)
+        self.linear3x = torch.nn.Linear(n2,n3)
+        self.linear4x = torch.nn.Linear(n3,1)
+        self.linear1z = torch.nn.Linear(demo.size()[1],n1)
+        self.linear2z = torch.nn.Linear(n1,n2)
+        self.linear3z = torch.nn.Linear(n2,n3)
+        self.linear4z = torch.nn.Linear(n3,1)
+        self.linear5 = torch.nn.Linear(2,1)
+        self.activation = torch.nn.ReLU()
+        self.sigma = torch.nn.Sigmoid()
+    def forward(self,x,z):
+        x = self.linear1x(x)        
+        x = self.activation(x)
+        x = self.linear2x(x)
+        x = self.activation(x)
+        x = self.linear3x(x)
+        x = self.activation(x)
+        x = self.linear4x(x)
+        z = self.linear1z(z)        
+        z = self.activation(z)
+        z = self.linear2z(z)
+        z = self.activation(z)
+        z = self.linear3z(z)
+        z = self.activation(z)
+        z = self.linear4z(z)
+        y = self.linear5(torch.cat((x,z),1))
+        y = 0.5*self.sigma(y)
+        return torch.squeeze(y)
+
+Network_Class = Simple_Network  # change the network here!
+models = [Network_Class().to(device) for i in range(nfolds+1)]
 optimizers = [torch.optim.Adam(models[i].parameters(), lr=0.0001) 
               for i in range(nfolds+1)]
 loss_function = torch.nn.MSELoss()
@@ -75,7 +131,11 @@ def get_training_data(i):
         start_index = folds[i-1]
         end_index = folds[i]
         training_indices = torch.cat((indices[:start_index],indices[end_index:]),0)
-        training_data = (inputs[training_indices, :],targets[training_indices])
+        training_data = (
+            inputs[training_indices, :],
+            demo[training_indices, :],
+            targets[training_indices]
+        )
         return training_data
 
 def get_validation_data(i):
@@ -85,38 +145,42 @@ def get_validation_data(i):
         start_index = folds[i-1]
         end_index = folds[i]
         validation_indices = indices[start_index:end_index]
-        validation_data = (inputs[validation_indices, :],targets[validation_indices])
+        validation_data = (
+            inputs[validation_indices, :],
+            demo[validation_indices, :],
+            targets[validation_indices]
+        )
         return validation_data
 
 def get_model_loss(data,model):
-    model.eval()
-    with torch.no_grad():
-        x,y = data
-        outputs = model(x)
+    model.eval() # no backpropagation
+    with torch.no_grad(): # no backpropagation
+        x,z,y = data
+        outputs = model(x,z)
         loss = loss_function(outputs,y)
         return loss.item()
 
-def get_training_loss():
+def get_training_loss(): # no backpropagation
     training_losses = [0 for i in range(nfolds)]
     for k in range(nfolds):
         training_data = get_training_data(k+1)
         training_losses[k] = get_model_loss(training_data,models[k+1])
     return sum(training_losses)/len(training_losses)
     
-def get_validation_loss():
+def get_validation_loss():  # no backpropagation
     validation_losses = [0 for i in range(nfolds)]
     for k in range(nfolds):
         validation_data = get_validation_data(k+1)
         validation_losses[k] = get_model_loss(validation_data,models[k+1])
     return sum(validation_losses)/len(validation_losses)
 
-def model_training_step(data,model,optimizer):
-    model.train(True)                   # go into training mode
-    optimizer.zero_grad()               # clear out old gradients
-    x,y = data                          # y - targets, x - labels
-    outputs = model(x)
+def model_training_step(data,model,optimizer): # backpropagation
+    model.train(True)                   
+    optimizer.zero_grad()               
+    x,z,y = data
+    outputs = model(x,z)
     loss = loss_function(outputs,y)
-    loss.backward()                    # backpropagation
+    loss.backward() # backpropagation
     optimizer.step()
     return loss.item()
 
@@ -126,8 +190,9 @@ def step():
         model_training_step(training_data,models[k],optimizers[k])
 
 def save_output():
+    print("Save Output")
     models[0].load_state_dict(state_dict)
-    prediction = models[0](inputs)
+    prediction = models[0](inputs,demo)
     results = {
         "choice2":  df["choice2"].tolist(),
         "prediction": prediction.cpu().detach().tolist(),
@@ -135,23 +200,31 @@ def save_output():
         "score1": df["score1"].tolist()
     }
     pd.DataFrame(data=results).to_csv("./machineLearning.csv",index=False)
+    print("Machine learning CSV Written")
     loss = {
         "trainingLoss": training_losses,
         "validationLoss": validation_losses
     }
     pd.DataFrame(data=loss).to_csv("./loss.csv",index=False)
+    print("Loss CSV Written")
     steps = [i*0.01 for i in range(0,51)]
     grid = {
-        choice1: [
-            models[0](torch.tensor([[score1,choice1]]).to(device)).cpu().detach().item() 
-            for score1 in steps
-        ] 
+        choice1: [predict(score1,choice1) for score1 in steps] 
         for choice1 in steps
     }
     grid_data_frame = pd.DataFrame(grid)
     grid_data_frame.index = steps
     grid_data_frame.to_csv('grid.csv')
-    print("CSV Written")
+    print("Grid CSV Written")
+
+def predict(score1,choice1):
+    print("Predict",score1,choice1)
+    x = torch.tensor([[score1,choice1]])
+    predictions = [0 for i in range(inputs.size()[0])]
+    for i in range(inputs.size()[0]):
+        predictions[i] = models[0](x,demo[i]).cpu().detach().item()
+    return sum(predictions)/len(predictions)
+
 
 
 nsteps = 500
