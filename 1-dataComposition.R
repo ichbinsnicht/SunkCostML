@@ -49,7 +49,7 @@ dataFrame = dataFrame[ids,]
 preSurveyFrame = preSurveyFrame[ids,]
 prolificFrame = prolificFrame[ids,]
 
-dataFrame = dataFrame[,c("score1","choice1","choice2")]
+dataFrame = dataFrame[,c("study","score1","choice1","choice2")]
 preSurveyFrame = preSurveyFrame[,-1]
 prolificFrame = prolificFrame[,c(9,11:15,21)]
 
@@ -69,6 +69,7 @@ cleanFrame$Ethnicity.simplified = NULL
 
 cleanFrame$Employment = (cleanFrame$Employment.status %in% c('Part-Time','Full-Time'))*1
 cleanFrame$Employment.status = NULL
-# Saving
 
+
+# Saving
 write.csv(cleanFrame,"clean/cleanData.csv", row.names=FALSE)
