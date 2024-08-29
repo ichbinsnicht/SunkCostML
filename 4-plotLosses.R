@@ -7,7 +7,6 @@ ymax = max(c(df$validationLoss))
 ymin = min(c(df$validationLoss))
 ylim = c(ymin,ymax)
 plot(df$validationLoss,col="blue", type='l',xlab='Step',ylab='Validation Loss')
-plot(df$trainingLoss,col='green',type='l', xlab='Step',ylab='Training Loss')
 
 # Find the optimal stopping point 
 which.min(df$validationLoss)

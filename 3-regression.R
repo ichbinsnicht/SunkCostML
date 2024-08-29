@@ -3,8 +3,6 @@ studies = c('66be300552fc3c98bcdc6c35','66c8d0c8779c5adea7f68954')
 study1 = df$study == studies[1]
 study2 = df$study == studies[2]
 
-#df = df[study2,]
-
 lowerBound = 0.1
 upperBound = 0.4
 interiorChoice1 = lowerBound <= df$choice1 & df$choice1 <= upperBound
