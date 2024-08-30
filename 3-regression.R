@@ -14,16 +14,15 @@ interiorScore1 = lowerBound <= df$score1 & df$score1 <= upperBound
 lowScore1 = df$score1 < lowerBound
 highScore1 = df$score1 > upperBound
 
-summary(lm(choice2 ~ score1, data=df[interiorChoice1,]))
-print(sum(interiorChoice1))
-
 summary(lm(choice2 ~ score1, data=df[lowChoice1,]))
 print(sum(lowChoice1))
+
+summary(lm(choice2 ~ score1, data=df[interiorChoice1,]))
+print(sum(interiorChoice1))
 
 summary(lm(choice2 ~ score1, data=df[highChoice1,]))
 print(sum(highChoice1))
 
-t.test(
-  df$choice2[study1&highChoice1&highScore1],
-  df$choice2[study2&highChoice1&highScore1]
-)
+reps = 3
+summary(lm(rep(choice2,reps) ~ rep(score1,reps), data=df[highChoice1,]))
+print(sum(highChoice1))
