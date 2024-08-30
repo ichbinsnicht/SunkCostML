@@ -23,9 +23,7 @@ print(sum(lowChoice1))
 summary(lm(choice2 ~ score1, data=df[highChoice1,]))
 print(sum(highChoice1))
 
-
 t.test(
-  df$choice2[study1&lowChoice1&lowScore1],
-  df$choice2[study2&lowChoice1&lowScore1]
+  df$choice2[study1&highChoice1&highScore1],
+  df$choice2[study2&highChoice1&highScore1]
 )
-

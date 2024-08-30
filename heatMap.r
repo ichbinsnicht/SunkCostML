@@ -9,8 +9,6 @@ studies = c('66be300552fc3c98bcdc6c35','66c8d0c8779c5adea7f68954')
 df = read.csv("clean/cleanData.csv", row.names = NULL)
 df1 = df[df$study==studies[1],]
 df2 = df[df$study==studies[2],]
-plot(df1$choice1,df1$score1,pch=20,cex=6,col=rgb(0,1-2*df1$choice2,2*df1$choice2,0.5))
-plot(df2$choice1,df2$score1,pch=20,cex=6,col=rgb(0,1-2*df2$choice2,2*df2$choice2,0.5))
 plot(df$choice1,df$score1,pch=20,cex=6,col=rgb(0,1-2*df$choice2,2*df$choice2,0.5))
 
 graphics.off()
