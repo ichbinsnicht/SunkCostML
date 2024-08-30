@@ -14,7 +14,7 @@ torch.set_printoptions(sci_mode=False, edgeitems=5)
 df = pd.read_csv("clean/cleanData.csv")
 
 inputs = torch.tensor((df[["score1","choice1"]]).to_numpy(),dtype=torch.float).to(device)
-demo = torch.tensor(df.drop(["score1","choice1","choice2"],axis=1).to_numpy(),dtype=torch.float).to(device)
+demo = torch.tensor(df.drop(["score1","choice1","choice2","study"],axis=1).to_numpy(),dtype=torch.float).to(device)
 targets = torch.tensor(df["choice2"],dtype=torch.float).to(device)
 
 indices = torch.randperm(len(df))   # randomly reorder indices
