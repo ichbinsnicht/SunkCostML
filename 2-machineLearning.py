@@ -14,7 +14,7 @@ torch.set_printoptions(sci_mode=False, edgeitems=5)
 df = pd.read_csv("clean/cleanData.csv")
 
 inputs = torch.tensor((df[["score1","choice1"]]).to_numpy(),dtype=torch.float).to(device)
-demo = torch.tensor(df.drop(["score1","choice1","choice2","study"],axis=1).to_numpy(),dtype=torch.float).to(device)
+demographics = torch.tensor(df.drop(["score1","choice1","choice2","study"],axis=1).to_numpy(),dtype=torch.float).to(device)
 targets = torch.tensor(df["choice2"],dtype=torch.float).to(device)
 
 indices = torch.randperm(len(df))   # randomly reorder indices
@@ -25,7 +25,7 @@ for k in range(nfolds+1):
     folds.append(k*foldsize)
 folds[-1] = inputs.size()[0]
 
-full_data = (inputs,demo,targets)
+full_data = (inputs,demographics,targets)
 
         # Fully connected (dense) neural network
         # size of layer0 = input features ("number of neurons" in input layer)
@@ -64,7 +64,7 @@ class Simple_Network(torch.nn.Module):
 class DemoNetwork(torch.nn.Module):
     def __init__(self):
         super(DemoNetwork,self).__init__()
-        self.linear1 = torch.nn.Linear(inputs.size()[1]+demo.size()[1],n1)
+        self.linear1 = torch.nn.Linear(inputs.size()[1]+demographics.size()[1],n1)
         self.activation = torch.nn.ReLU()
         self.sigma = torch.nn.Sigmoid()
         self.linear2 = torch.nn.Linear(n1,n2)
@@ -89,7 +89,7 @@ class SeparableDemoNetwork(torch.nn.Module):
         self.linear2x = torch.nn.Linear(n1,n2)
         self.linear3x = torch.nn.Linear(n2,n3)
         self.linear4x = torch.nn.Linear(n3,1)
-        self.linear1z = torch.nn.Linear(demo.size()[1],n1)
+        self.linear1z = torch.nn.Linear(demographics.size()[1],n1)
         self.linear2z = torch.nn.Linear(n1,n2)
         self.linear3z = torch.nn.Linear(n2,n3)
         self.linear4z = torch.nn.Linear(n3,1)
@@ -133,7 +133,7 @@ def get_training_data(i):
         training_indices = torch.cat((indices[:start_index],indices[end_index:]),0)
         training_data = (
             inputs[training_indices, :],
-            demo[training_indices, :],
+            demographics[training_indices, :],
             targets[training_indices]
         )
         return training_data
@@ -147,7 +147,7 @@ def get_validation_data(i):
         validation_indices = indices[start_index:end_index]
         validation_data = (
             inputs[validation_indices, :],
-            demo[validation_indices, :],
+            demographics[validation_indices, :],
             targets[validation_indices]
         )
         return validation_data
@@ -192,7 +192,7 @@ def step():
 def save_output():
     print("Save Output")
     models[0].load_state_dict(state_dict)
-    prediction = models[0](inputs,demo)
+    prediction = models[0](inputs,demographics)
     results = {
         "choice2":  df["choice2"].tolist(),
         "prediction": prediction.cpu().detach().tolist(),
@@ -219,10 +219,12 @@ def save_output():
 
 def predict(score1,choice1):
     print("Predict",score1,choice1)
-    x = torch.tensor([[score1,choice1]])
+    x = torch.tensor([[score1,choice1]]).to(device)
+    if(Network_Class == Simple_Network):
+        return models[0](x,demographics[0]).cpu().detach().item()
     predictions = [0 for i in range(inputs.size()[0])]
     for i in range(inputs.size()[0]):
-        predictions[i] = models[0](x,demo[i]).cpu().detach().item()
+        predictions[i] = models[0](x,demographics[i]).cpu().detach().item()
     return sum(predictions)/len(predictions)
 
 
