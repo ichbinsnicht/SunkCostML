@@ -68,8 +68,9 @@ cleanFrame$White = (cleanFrame$Ethnicity.simplified == 'White')*1
 cleanFrame$Ethnicity.simplified = NULL
 
 cleanFrame$Employment = (cleanFrame$Employment.status %in% c('Part-Time','Full-Time'))*1
+cleanFrame$PartTime = (cleanFrame$Employment.status == 'Part-Time')*1
+cleanFrame$FullTime = (cleanFrame$Employment.status == 'Full-Time')*1
 cleanFrame$Employment.status = NULL
-
 
 # Saving
 write.csv(cleanFrame,"clean/cleanData.csv", row.names=FALSE)
